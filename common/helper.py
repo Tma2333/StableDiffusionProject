@@ -17,6 +17,8 @@ def run_stable_diffusion(prompt: T.List[str],
                          num_inference_steps: int = 100,
                          guidance_scale: float = 7.5,
                          seed: int = 0):
+    """Outdated: leaving here as refernece
+    """
     torch_device = "cuda" if torch.cuda.is_available() else "cpu"
     generator = torch.manual_seed(seed) 
     batch_size = 1

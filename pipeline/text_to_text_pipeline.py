@@ -22,7 +22,10 @@ def run_text_to_text_example():
     summary = summarize(model, tokenizer, device, text)
     print ("\n\nSummarized text: \n",summary)
 
-def summarize(model, tokenizer, device, text):
+def summarize(model, tokenizer, device, text, num_beams=4,
+                                    no_repeat_ngram_size=2,
+                                    min_length=30,
+                                    max_length=75):
 
     preprocessed_text = preprocess_text(text)
     t5_prepared_Text = "summarize: "+preprocessed_text
@@ -33,10 +36,10 @@ def summarize(model, tokenizer, device, text):
 
     # summmarize 
     summary_ids = model.generate(tokenized_text,
-                                    num_beams=4,
+                                    num_beams=num_beams,
                                     no_repeat_ngram_size=2,
-                                    min_length=30,
-                                    max_length=75,
+                                    min_length=min_length,
+                                    max_length=max_length,
                                     early_stopping=True)
 
     output = tokenizer.decode(summary_ids[0], skip_special_tokens=True)

@@ -29,7 +29,6 @@ def summarize(model, tokenizer, device, text, num_beams=4,
 
     preprocessed_text = preprocess_text(text)
     t5_prepared_Text = "summarize: "+preprocessed_text
-    print ("original text preprocessed: \n", preprocessed_text)
 
     tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt").to(device)
 

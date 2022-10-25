@@ -1,0 +1,21 @@
+{
+    "os": "Linux-5.4.0-131-generic-x86_64-with-glibc2.29",
+    "python": "3.8.10",
+    "heartbeatAt": "2022-10-25T22:42:16.480943",
+    "startedAt": "2022-10-25T22:42:15.928571",
+    "docker": null,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "Notebook t5 tuning",
+    "git": {
+        "remote": "git@github.com:Tma2333/StableDiffusionProject.git",
+        "commit": "27914a20b39521ea4b07c4ab38e3563d3bb78ffb"
+    },
+    "email": "32542379+gravlaks@users.noreply.github.com",
+    "root": "/home/torstein/src/stanford/cs229/StableDiffusionProject",
+    "host": "torstein-Lenovo-IdeaPad-FLEX-15IWL",
+    "username": "torstein",
+    "executable": "/home/torstein/src/stanford/cs229/StableDiffusionProject/pipeline/venv/bin/python"
+}

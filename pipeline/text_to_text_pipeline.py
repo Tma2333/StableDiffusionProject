@@ -36,7 +36,7 @@ def summarize(model, tokenizer, device, text, num_beams=4,
     # summmarize 
     summary_ids = model.generate(tokenized_text,
                                     num_beams=num_beams,
-                                    no_repeat_ngram_size=2,
+                                    no_repeat_ngram_size=no_repeat_ngram_size,
                                     min_length=min_length,
                                     max_length=max_length,
                                     early_stopping=True)

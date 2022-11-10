@@ -91,7 +91,7 @@ def make_img_path_list(use_dir_num):
     '''
     train_img_list = []
     for i in range(use_dir_num):
-        use_dir = f"../data/cats/CAT_0{i}"
+        use_dir = f"../../data/cats/CAT_0{i}"
         paths = glob.glob(os.path.join(use_dir,"*.jpg"))
         train_img_list+=paths
         print("num_img",len(train_img_list))
@@ -196,14 +196,11 @@ for epoch in range(num_epochs):
         ## Train with all-real batch
         netD.zero_grad()
         # Format batch
-        print(data.shape)
         real_cpu = data.to(device)
         b_size = data.shape[0]
-        print(b_size)
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
         # Forward pass real batch through D
         output = netD(real_cpu).view(-1)
-        print(output.shape)
         # Calculate loss on all-real batch
         errD_real = criterion(output, label)
         # Calculate gradients for D in backward pass

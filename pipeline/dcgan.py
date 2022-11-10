@@ -19,8 +19,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
 import glob
+<<<<<<< HEAD
 from PIL import Image
 
+=======
+>>>>>>> e4d17aa4280db285efa836d4d70b4733c2ca8090
 
 from GAN_models import Generator, Discriminator
 
@@ -34,9 +37,10 @@ torch.manual_seed(manualSeed)
 
 
 # Root directory for dataset
-dataroot = "../../data/cats"
-INPUT_PATH = "../../data/cats/CAT_00"
-img_path_list = glob.glob(os.path.join(INPUT_PATH,"*.jpg"))
+dataroot = "../data/cats"
+
+
+
 
 # Number of workers for dataloader
 workers = 5

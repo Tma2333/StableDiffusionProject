@@ -91,10 +91,17 @@ def make_img_path_list(use_dir_num):
     '''
     train_img_list = []
     for i in range(use_dir_num):
-        use_dir = f"../../data/cats/CAT_0{i}"
+        use_dir = dataroot+f"/CAT_0{i}"
         paths = glob.glob(os.path.join(use_dir,"*.jpg"))
         train_img_list+=paths
         print("num_img",len(train_img_list))
+    
+    
+    for path_tuple in os.walk(dataroot+"/cat_breeds/"):
+        use_dir = glob.glob(os.path.join(dataroot+"/cat_breeds/"+path_tuple[0],"*.jpg"))
+        train_img_list+=paths
+        print("num_img",len(train_img_list))
+
     return train_img_list
 
 

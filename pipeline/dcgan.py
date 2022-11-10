@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
-
+import glob
 
 from GAN_models import Generator, Discriminator
 
@@ -32,7 +32,10 @@ torch.manual_seed(manualSeed)
 
 
 # Root directory for dataset
-dataroot = "../../data/"
+dataroot = "../data/cats"
+
+
+
 
 # Number of workers for dataloader
 workers = 2

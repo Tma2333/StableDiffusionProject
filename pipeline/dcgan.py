@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
-import torch.utils.data
+import torch.utils.data as data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
@@ -18,6 +18,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
+import glob
+from PIL import Image
 
 
 from GAN_models import Generator, Discriminator
@@ -32,10 +34,12 @@ torch.manual_seed(manualSeed)
 
 
 # Root directory for dataset
-dataroot = "../../data/"
+dataroot = "../../data/cats"
+INPUT_PATH = "../../data/cats/CAT_00"
+img_path_list = glob.glob(os.path.join(INPUT_PATH,"*.jpg"))
 
 # Number of workers for dataloader
-workers = 2
+workers = 5
 
 # Batch size during training
 batch_size = 128
@@ -71,14 +75,50 @@ def weights_init(m):
 
 # We can use an image folder dataset the way we have it setup.
 # Create the dataset
-dataset = dset.ImageFolder(root=dataroot,
-                           transform=transforms.Compose([
+transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
                                transforms.ToTensor(),
-                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                           ]))
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
+
+
+
+
+def make_img_path_list(use_dir_num):
+    '''
+    '''
+    train_img_list = []
+    for i in range(use_dir_num):
+        use_dir = f"../../data/cats/CAT_0{i}"
+        paths = glob.glob(os.path.join(use_dir,"*.jpg"))
+        train_img_list+=paths
+        print("num_img",len(train_img_list))
+    return train_img_list
+
+
+                           
+class GAN_Dataset(data.Dataset):
+    def __init__(self, file_list, transform):
+        self.file_list = file_list
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.file_list)
+    
+    def __getitem__(self, index):
+        img = Image.open(self.file_list[index])
+        img = self.transform(img)
+        img = img.unsqueeze(0)
+        return img
+    
 # Create the dataloader
+train_img_list = make_img_path_list(7)
+dataset = GAN_Dataset(
+    file_list=train_img_list,
+    transform=transform)
+
+
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True, num_workers=workers)
 
@@ -107,6 +147,7 @@ netG.apply(weights_init)
 print(netG)
 
 netD = Discriminator(ngpu).to(device)
+print("Device", device)
 
 # Handle multi-gpu if desired
 if (device.type == 'cuda') and (ngpu > 1):
@@ -143,7 +184,7 @@ G_losses = []
 D_losses = []
 iters = 0
 
-print("Starting Training Loop...")
+print("Starting Training Loop...", device)
 # For each epoch
 for epoch in range(num_epochs):
     # For each batch in the dataloader

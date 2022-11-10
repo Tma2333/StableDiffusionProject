@@ -19,11 +19,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
 import glob
-<<<<<<< HEAD
 from PIL import Image
 
-=======
->>>>>>> e4d17aa4280db285efa836d4d70b4733c2ca8090
 
 from GAN_models import Generator, Discriminator
 
@@ -94,7 +91,7 @@ def make_img_path_list(use_dir_num):
     '''
     train_img_list = []
     for i in range(use_dir_num):
-        use_dir = f"../../data/cats/CAT_0{i}"
+        use_dir = f"../data/cats/CAT_0{i}"
         paths = glob.glob(os.path.join(use_dir,"*.jpg"))
         train_img_list+=paths
         print("num_img",len(train_img_list))
@@ -113,7 +110,7 @@ class GAN_Dataset(data.Dataset):
     def __getitem__(self, index):
         img = Image.open(self.file_list[index])
         img = self.transform(img)
-        img = img.unsqueeze(0)
+        #img = img.unsqueeze(0)
         return img
     
 # Create the dataloader
@@ -199,11 +196,14 @@ for epoch in range(num_epochs):
         ## Train with all-real batch
         netD.zero_grad()
         # Format batch
-        real_cpu = data[0].to(device)
-        b_size = real_cpu.size(0)
+        print(data.shape)
+        real_cpu = data.to(device)
+        b_size = data.shape[0]
+        print(b_size)
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
         # Forward pass real batch through D
         output = netD(real_cpu).view(-1)
+        print(output.shape)
         # Calculate loss on all-real batch
         errD_real = criterion(output, label)
         # Calculate gradients for D in backward pass

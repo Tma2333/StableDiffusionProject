@@ -32,13 +32,13 @@ torch.manual_seed(manualSeed)
 
 
 # Root directory for dataset
-dataroot = "/home/torstein/src/stanford/cs229/StableDiffusionProject/data/celeba"
+dataroot = "../../data/"
 
 # Number of workers for dataloader
 workers = 2
 
 # Batch size during training
-batch_size = 64
+batch_size = 128
 
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
@@ -47,7 +47,7 @@ image_size = 64
 nc = 3
 
 # Number of training epochs
-num_epochs = 1
+num_epochs = 5
 
 # Learning rate for optimizers
 lr = 0.0002
@@ -56,7 +56,7 @@ lr = 0.0002
 beta1 = 0.5
 
 # Number of GPUs available. Use 0 for CPU mode.
-ngpu = 0
+ngpu = 1
 
 
 # custom weights initialization called on netG and netD
@@ -148,8 +148,6 @@ print("Starting Training Loop...")
 for epoch in range(num_epochs):
     # For each batch in the dataloader
     for i, data in enumerate(dataloader, 0):
-        if i == 1:
-            break
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################

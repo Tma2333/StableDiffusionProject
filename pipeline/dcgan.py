@@ -52,7 +52,7 @@ image_size = 64
 nc = 3
 
 # Number of training epochs
-num_epochs = 20
+num_epochs = 100
 
 # Learning rate for optimizers
 lr = 0.00005

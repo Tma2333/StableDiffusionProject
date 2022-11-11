@@ -10,7 +10,7 @@ class Generator(nn.Module):
         self.nz = 100
 
         # Size of feature maps in generator
-        ngf = 64
+        ngf = 256
 
         # Number of channels in the training images. For color images this is 3
         self.ngpu = ngpu
@@ -47,7 +47,7 @@ class Discriminator(nn.Module):
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
         # Size of feature maps in discriminator
-        ndf = 64
+        ndf = 128
         
         self.ngpu = ngpu
         self.main = nn.Sequential(

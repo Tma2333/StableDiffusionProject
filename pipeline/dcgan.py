@@ -34,7 +34,7 @@ torch.manual_seed(manualSeed)
 
 
 # Root directory for dataset
-dataroot = "../../data/cats"
+dataroot = "../data/cats"
 
 
 
@@ -80,7 +80,9 @@ transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
                                transforms.ToTensor(),
-                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                               transforms.RandomAdjustSharpness(sharpness_factor=2),
+                               transforms.RandomVerticalFlip(0.5) ## Flip image 50% of the time
 ])
 
 
@@ -102,6 +104,10 @@ def make_img_path_list(use_dir_num):
         train_img_list+=paths
         print("num_img",len(train_img_list))
 
+    train_img_list+= glob.glob(os.path.join(dataroot+"/dog vs cat/dataset/training_set/cats/","*.jpg"))
+    print("num_img",len(train_img_list))
+    train_img_list += glob.glob(os.path.join(dataroot+"/dog vs cat/dataset/test_set/cats/","*.jpg"))
+    print("num_img",len(train_img_list))
     return train_img_list
 
 

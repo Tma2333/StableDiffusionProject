@@ -141,8 +141,6 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         # For each batch in the dataloader
         for i, data in enumerate(dataloader, 0):
             
-            if i == 1:
-                break
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -222,6 +220,15 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     save_model([generator_filepath, discriminator_filepath], epoch, [netG, netD],
              [optimizerG, optimizerG], [errG, errD] )
 
+    plt.figure(figsize=(10,5))
+    plt.title("Generator and Discriminator Loss During Training")
+    plt.plot(G_losses,label="G")
+    plt.plot(D_losses,label="D")
+    plt.xlabel("iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.save_fig(f"../data/losses.png")
+
 
 
 ## Model saving
@@ -264,7 +271,7 @@ if __name__=='__main__':
     image_size = 64
 
 
-    num_epochs = 100
+    num_epochs = 500
     lr = 0.00005
     beta1 = 0.5
 
@@ -287,5 +294,5 @@ if __name__=='__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
     dataloader = get_dataloader(image_size, batch_size)
     train(
-        netG, netD, optimizerG, optimizerD, dataloader, True, 5
+        netG, netD, optimizerG, optimizerD, dataloader, False, num_epochs
     )

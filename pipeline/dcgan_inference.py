@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from GAN_models import Discriminator, Generator
-
+from torchsummary import summary
 device = 'cpu'
 netG = Generator(ngpu=0)
+summary(netG, ( netG.nz, 1, 1))
 
 for i in range(50):
     fixed_noise = torch.randn(1, netG.nz, 1, 1, device=device)
@@ -20,4 +21,5 @@ for i in range(50):
 
 
     plt.savefig(f"../data/gan_samples/gan_{i}.png")
+
 #plt.show()

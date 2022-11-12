@@ -203,15 +203,17 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
             D_losses.append(errD.item())
 
             # Check how the generator is doing by saving G's output on fixed_noise
-        if (epoch % 5 == 0) or (epoch == num_epochs-1) :
+        if (epoch % 10 == 0) or (epoch == num_epochs-1) :
             with torch.no_grad():
                 fake = netG(fixed_noise).detach().cpu()
-            img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
+            plt.figure()
+            plt.imshow(np.transpose(vutils.make_grid(fake, padding=2, normalize=True), (1,2,0)))
+            plt.savefig(f"../data/gan_samples/epochs_{epoch}.png")
 
         
 
         
-        if epoch % 5 == 0:
+        if epoch % 10 == 0:
             save_model([gen_chpt, disc_chpt], epoch, [netG, netD],
              [optimizerG, optimizerD], [errG, errD])
             

@@ -3,6 +3,7 @@
 from __future__ import print_function
 #%matplotlib inline
 import argparse
+import time
 import os
 import random
 import torch
@@ -137,6 +138,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     netD.train()
     netG.train()
     while epoch < num_epochs:
+        t1 = time.time()
         epoch+=1
         # For each batch in the dataloader
         for i, data in enumerate(dataloader, 0):
@@ -216,6 +218,9 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         if epoch % 10 == 0:
             save_model([gen_chpt, disc_chpt], epoch, [netG, netD],
              [optimizerG, optimizerD], [errG, errD])
+
+        diff = time.time()-t1
+        print(f"Time for one epoch: {diff}")
             
     generator_filepath = "../models/gen.pkl"
     discriminator_filepath = "../models/disc.pkl"

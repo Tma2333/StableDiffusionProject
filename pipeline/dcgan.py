@@ -60,6 +60,8 @@ def make_img_path_list(use_dir_num):
     '''
     '''
     train_img_list = []
+    train_img_list = glob.glob(os.path.join(dataroot+"/cats/","*.jpg"))
+    return train_img_list
     for i in range(use_dir_num):
         use_dir = dataroot+f"/CAT_0{i}"
         paths = glob.glob(os.path.join(use_dir,"*.jpg"))
@@ -278,7 +280,7 @@ if __name__=='__main__':
     image_size = 64
 
 
-    num_epochs = 500
+    num_epochs = 10
     lr = 0.00005
     beta1 = 0.5
 

@@ -16,153 +16,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
-
 import torchvision.transforms as transforms
 import torchvision.models as models
-
-import copy
+import glob
 device= 'cpu'
 model =  models.vgg19(pretrained=True).features.to(device).eval()
 
 for param in model.parameters():
     param.requires_grad = False
 
-content_image = Image.open("../data/louvre.png")
-
-
-def compute_content_cost(content_output, generated_output):
-    """
-    Computes the content cost
-    
-    Arguments:
-    a_C -- tensor of dimension (1, n_H, n_W, n_C), hidden layer activations representing content of the image C 
-    a_G -- tensor of dimension (1, n_H, n_W, n_C), hidden layer activations representing content of the image G
-    
-    Returns: 
-    J_content -- scalar that you compute using equation 1 above.
-    """
-    a_C = content_output[-1]
-    a_G = generated_output[-1]
-    
-    ### START CODE HERE
-    
-    # Retrieve dimensions from a_G (≈1 line)
-    _, n_H, n_W, n_C = a_G.shape
-    
-    # compute the cost with tensorflow (≈1 line)
-    J_content = 1./(4*n_H*n_W*n_C)*torch.sum(torch.square(a_C-a_G))
-    
-    ### END CODE HERE
-    
-    return J_content
-
-a_C = torch.normal(mean=1, std=4, size=[1, 1, 4, 4, 3])
-a_G = torch.normal(mean=1, std=4, size = [1, 1, 4, 4, 3])
-J_content = compute_content_cost(a_C, a_G)
-J_content_0 = compute_content_cost(a_C, a_C)
-
-print(J_content)
-print(J_content_0)
-
-example = Image.open("../data/monet.png")
 
 
 
-def gram_matrix(A):
-    """
-    Argument:
-    A -- matrix of shape (n_C, n_H*n_W)
-    
-    Returns:
-    GA -- Gram matrix of A, of shape (n_C, n_C)
-    """  
-    ### START CODE HERE
-    
-    #(≈1 line)
-    GA = torch.matmul(A, torch.transpose(A, 0, 1))
-    
-    ### END CODE HERE
 
-    return GA
 
-A = torch.normal(size=[3, 2 * 1], mean=1, std=4)
-GA = gram_matrix(A)
-print(GA)
-
-def compute_layer_style_cost(a_S, a_G):
-    """
-    Arguments:
-    a_S -- tensor of dimension (1, n_H, n_W, n_C), hidden layer activations representing style of the image S 
-    a_G -- tensor of dimension (1, n_H, n_W, n_C), hidden layer activations representing style of the image G
-    
-    Returns: 
-    J_style_layer -- tensor representing a scalar value, style cost defined above by equation (2)
-    """
-    ### START CODE HERE
-    
-    # Retrieve dimensions from a_G (≈1 line)
-    _, n_H, n_W, n_C = a_G.shape
-    
-    # Reshape the images from (n_H * n_W, n_C) to have them of shape (n_C, n_H * n_W) (≈2 lines)
-    a_S = torch.permute(a_S, (0, 3, 1, 2))
-    a_G = torch.permute(a_G, (0, 3, 1, 2))
-    a_S = torch.reshape(a_S, (n_C, -1))
-    a_G = torch.reshape(a_G, (n_C, -1))
-
-    # Computing gram_matrices for both images S and G (≈2 lines)
-    GS = gram_matrix(a_S)
-    GG = gram_matrix(a_G)
-
-    # Computing the loss (≈1 line)
-    J_style_layer = torch.sum(torch.square(torch.subtract(GS,GG)))*1./(2.*n_C*n_W*n_H)**2
-    
-    ### END CODE HERE
-    print(J_style_layer)
-    return J_style_layer
-
-a_S = torch.normal(size=[1, 4, 4, 3], mean=1, std=4)
-a_G = torch.normal(size=[1, 4, 4, 3], mean=1, std=4)
-J_style_layer_GG = compute_layer_style_cost(a_G, a_G)
-J_style_layer_SG = compute_layer_style_cost(a_S, a_G)
 
 content_layers_default = ['conv_4']
 style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-
-def compute_style_cost(style_image_output, generated_image_output, STYLE_LAYERS=style_layers_default):
-    """
-    Computes the overall style cost from several chosen layers
-    
-    Arguments:
-    style_image_output -- our tensorflow model
-    generated_image_output --
-    STYLE_LAYERS -- A python list containing:
-                        - the names of the layers we would like to extract style from
-                        - a coefficient for each of them
-    
-    Returns: 
-    J_style -- tensor representing a scalar value, style cost defined above by equation (2)
-    """
-    
-    # initialize the overall style cost
-    J_style = 0
-
-    # Set a_S to be the hidden layer activation from the layer we have selected.
-    # The last element of the array contains the content layer image, which must not be used.
-    a_S = style_image_output[:-1]
-
-    # Set a_G to be the output of the choosen hidden layers.
-    # The last element of the list contains the content layer image which must not be used.
-    a_G = generated_image_output[:-1]
-    for i, weight in zip(range(len(a_S)), STYLE_LAYERS):  
-        # Compute style_cost for the current layer
-        J_style_layer = compute_layer_style_cost(a_S[i], a_G[i])
-
-        # Add weight * J_style_layer of this layer to overall style cost
-        J_style += weight[1] * J_style_layer
-
-    return J_style
-
 
 
 
@@ -206,7 +76,6 @@ class Normalization(nn.Module):
         # normalize img
         return (img - self.mean) / self.std
 
-img_size = 224
 
 imsize = (224, 224)# if torch.cuda.is_available() else 128  # use small size if no gpu
 unloader = transforms.ToPILImage()  # reconvert into PIL image
@@ -229,18 +98,22 @@ loader = transforms.Compose([
 
 def image_loader(image_name):
     image = Image.open(image_name)
-    print(image.size)
 
     # fake batch dimension required to fit network's input dimensions
     image = loader(image).unsqueeze(0)
     return image.to(device, torch.float)
 
 
-content_img= image_loader("../data/amie_finn_costumes.jpg")
+content_img= image_loader("../data/picasso.jpeg")
 
-style_img =  image_loader("../data/spooky.jpg")
+style_img =  image_loader("../data/picasso2.jpg")
 
-generated_image = torch.clone(content_img)
+# plt.imshow(torch.permute(content_img.squeeze(), (1, 2, 0)))
+
+# plt.show()
+# plt.imshow(torch.permute(style_img.squeeze(), (1, 2, 0)))
+# plt.show()
+generated_image = torch.clone(content_img).detach()
 
 
 
@@ -253,10 +126,11 @@ class ContentLoss(nn.Module):
         # to dynamically compute the gradient: this is a stated value,
         # not a variable. Otherwise the forward method of the criterion
         # will throw an error.
-        self.target = target.detach()
+        self.target = target.detach()/torch.norm(target)
 
     def forward(self, input):
-        self.loss = F.mse_loss(input, self.target)
+        
+        self.loss = F.mse_loss(input/torch.norm(input), self.target)
         return input
 
 
@@ -271,8 +145,9 @@ def gram_matrix(input):
     G = torch.mm(features, features.t())  # compute the gram product
 
     # we 'normalize' the values of the gram matrix
-    # by dividing by the number of element in each feature maps.
-    return G.div(a * b * c * d)
+
+    G = G.div(torch.norm(G))
+    return G#G.div(a * b * c * d)
 
 
 
@@ -399,7 +274,6 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
             loss = style_score + content_score
             loss.backward()
-
             run[0] += 1
             if run[0] % 50 == 0:
                 print("run {}:".format(run))
@@ -417,12 +291,117 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     return input_img
 
-output = run_style_transfer(model, cnn_normalization_mean, cnn_normalization_std,
-                            content_img, style_img, generated_image, num_steps=1000)
 
-plt.figure()
-imshow(output, title='Output Image')
+# plt.figure()
+# imshow(output, title='Output Image')
 
-# sphinx_gallery_thumbnail_number = 4
-#plt.ioff()
-plt.show()
+# # sphinx_gallery_thumbnail_number = 4
+# #plt.ioff()
+# plt.show()
+
+def get_loss(style_losses, content_losses, style_weight, content_weight):
+    style_score = 0
+    content_score = 0
+
+    for sl in style_losses:
+        style_score += sl.loss
+    for cl in content_losses:
+        content_score += cl.loss
+
+    style_score *= style_weight
+    content_score *= content_weight
+    return style_score, content_score
+
+def van_gogh_analysis(output_image, content_image):
+    #https://www.kaggle.com/code/amyjang/monet-cyclegan-tutorial/data
+    #https://www.kaggle.com/datasets/ipythonx/van-gogh-paintings
+    print("Starting analysis")
+    folder_path = "../data/VincentVanGogh/Arles/"
+
+    imgs_vg = glob.glob(os.path.join(folder_path,"*.jpg"))
+
+
+    image_vg = image_loader(folder_path+"A Pair of Leather Clogs.jpg")
+    image_original = content_image
+    
+    cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
+    cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
+    
+    model_vg =  models.vgg19(pretrained=True).features.to(device).eval()
+    model_vg, style_losses_vg, content_losses_vg = get_style_model_and_losses(model_vg,
+        cnn_normalization_mean, cnn_normalization_std, image_vg, image_vg)
+    model_orig =  models.vgg19(pretrained=True).features.to(device).eval()
+    model_orig, style_losses_orig, content_losses_orig = get_style_model_and_losses(model_orig,
+        cnn_normalization_mean, cnn_normalization_std, image_original, image_original)
+    model_output =  models.vgg19(pretrained=True).features.to(device).eval()
+    model_output, style_losses_output, content_losses_output = get_style_model_and_losses(model_output,
+        cnn_normalization_mean, cnn_normalization_std, output_image, output_image)
+        
+    losses_vg, losses_orig, losses_output = [], [], []
+    losses_vg_content, losses_orig_content, losses_output_content = [], [], []
+    for i, content_path_vg in enumerate(imgs_vg):
+        if i == 50:
+            break
+        content_img_vg = image_loader(content_path_vg)
+
+        #Send Van Gogh image to all 3 models
+        model_output(content_img_vg)
+        model_vg(content_img_vg)
+        model_orig(content_img_vg)
+
+
+        style_loss, content_loss = get_loss(style_losses_vg, content_losses_vg, 1, 1)
+
+        print("van gogh vs van gogh", style_loss.item(), content_loss.item())
+        losses_vg.append(style_loss.item())
+        losses_vg_content.append(content_loss.item())
+
+      
+        style_loss, content_loss = get_loss(style_losses_orig, content_losses_orig, 1, 1)
+        print("orig vs van gogh", style_loss.item(), content_loss.item())
+        losses_orig.append(style_loss.item())
+        losses_orig_content.append(content_loss.item())
+
+      
+        style_loss, content_loss = get_loss(style_losses_output, content_losses_output, 1, 1)
+        print("output_image vs van gogh", style_loss.item(), content_loss.item())
+        losses_output.append(style_loss.item())
+        losses_output_content.append(content_loss.item())
+
+    plt.figure()
+    plt.title("Style loss")
+    plt.plot(losses_vg, label = "van gogh vs. van gogh")
+    plt.plot(losses_orig, label="orginal vs. van gogh")
+    plt.plot(losses_output, label="output vs. van gogh")
+    plt.legend()
+
+    plt.savefig("../data/Style_loss.png")
+    plt.figure()
+    plt.title("Content loss")
+
+    plt.plot(losses_vg_content, label = "van gogh vs. van gogh")
+    plt.plot(losses_orig_content, label="original vs. van gogh")
+    plt.plot(losses_output_content, label="output vs. van gogh")
+
+    plt.legend()
+
+    plt.savefig("../data/Content_loss.png")
+
+    plt.show()
+
+if __name__=='__main__':
+
+
+
+    style_img = image_loader("../data/VincentVanGogh/Arles/Wheat Stacks with Reaper.jpg")
+
+    content_img =  image_loader("../data/louvre.png")
+
+    generated_image = torch.clone(content_img).detach()
+    output = run_style_transfer(model, cnn_normalization_mean, cnn_normalization_std,
+                            content_img, style_img, generated_image, num_steps=100)
+    imshow(output)
+
+    van_gogh_analysis(output, content_img)
+
+    

@@ -3,6 +3,7 @@
 from __future__ import print_function
 #%matplotlib inline
 import argparse
+import time
 import os
 import random
 import torch
@@ -141,12 +142,11 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     netD.train()
     netG.train()
     while epoch < num_epochs:
+        t1 = time.time()
         epoch+=1
         # For each batch in the dataloader
         for i, data in enumerate(dataloader, 0):
             
-            if i == 1:
-                break
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -222,11 +222,23 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         if epoch % 10 == 0:
             save_model([gen_chpt, disc_chpt], epoch, [netG, netD],
              [optimizerG, optimizerD], [errG, errD])
+
+        diff = time.time()-t1
+        print(f"Time for one epoch: {diff}")
             
     generator_filepath = "../models/gen.pkl"
     discriminator_filepath = "../models/disc.pkl"
     save_model([generator_filepath, discriminator_filepath], epoch, [netG, netD],
              [optimizerG, optimizerG], [errG, errD] )
+
+    plt.figure(figsize=(10,5))
+    plt.title("Generator and Discriminator Loss During Training")
+    plt.plot(G_losses,label="G")
+    plt.plot(D_losses,label="D")
+    plt.xlabel("iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.save_fig(f"../data/losses.png")
 
 
 
@@ -293,5 +305,5 @@ if __name__=='__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
     dataloader = get_dataloader(image_size, batch_size)
     train(
-        netG, netD, optimizerG, optimizerD, dataloader, True, 5
+        netG, netD, optimizerG, optimizerD, dataloader, False, num_epochs
     )

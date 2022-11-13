@@ -122,20 +122,22 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         optimizerG.load_state_dict(saved['optimizer_state_dict'])
         epoch = saved['epoch']
         errG = saved['loss']
+        G_losses = saved['loss_list'].tolist()
 
         saved = torch.load(disc_chpt)
         netD.load_state_dict(saved['model_state_dict'])
         optimizerD.load_state_dict(saved['optimizer_state_dict'])
         errD = saved['loss']
 
+        D_losses = saved['loss_list'].tolist()
         print(f"Starting from epoch: {epoch}, loss: errD={errD.item()}, errG={errG.item()}")
+
     else:
         netG.apply(weights_init)
         netD.apply(weights_init)
     # Lists to keep track of progress
-    img_list = []
-    G_losses = []
-    D_losses = []
+        G_losses = []
+        D_losses = []
     print("Starting Training Loop...", device)
     # For each epoch
     criterion = nn.BCELoss()
@@ -146,7 +148,8 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         epoch+=1
         # For each batch in the dataloader
         for i, data in enumerate(dataloader, 0):
-            
+            if i == 1:
+                break
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -219,9 +222,9 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         
 
         
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             save_model([gen_chpt, disc_chpt], epoch, [netG, netD],
-             [optimizerG, optimizerD], [errG, errD])
+             [optimizerG, optimizerD], [errG, errD], [G_losses, D_losses])
 
         diff = time.time()-t1
         print(f"Time for one epoch: {diff}")
@@ -229,7 +232,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     generator_filepath = "../models/gen.pkl"
     discriminator_filepath = "../models/disc.pkl"
     save_model([generator_filepath, discriminator_filepath], epoch, [netG, netD],
-             [optimizerG, optimizerG], [errG, errD] )
+             [optimizerG, optimizerG], [errG, errD], [G_losses, D_losses] )
 
     plt.figure(figsize=(10,5))
     plt.title("Generator and Discriminator Loss During Training")
@@ -238,18 +241,19 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
-    plt.save_fig(f"../data/losses.png")
+    plt.savefig(f"../data/losses.png")
 
 
 
 ## Model saving
-def save_model(paths, epoch, models,  optims, losses):
-    for path, model, optim, loss in zip(paths, models, optims, losses):
+def save_model(paths, epoch, models,  optims, losses, losses_lists):
+    for path, model, optim, loss, loss_list in zip(paths, models, optims, losses, losses_lists):
         torch.save({
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optim.state_dict(),
                     'loss': loss,
+                    'loss_list': np.array(loss_list)
                     }, path)
 
 def get_dataloader(image_size, batch_size):
@@ -282,7 +286,7 @@ if __name__=='__main__':
     image_size = 64
 
 
-    num_epochs = 10
+    num_epochs = 3
     lr = 0.00005
     beta1 = 0.5
 
@@ -305,5 +309,5 @@ if __name__=='__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
     dataloader = get_dataloader(image_size, batch_size)
     train(
-        netG, netD, optimizerG, optimizerD, dataloader, False, num_epochs
+        netG, netD, optimizerG, optimizerD, dataloader, True, num_epochs
     )

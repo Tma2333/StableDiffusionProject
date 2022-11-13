@@ -138,7 +138,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     D_losses = []
     print("Starting Training Loop...", device)
     # For each epoch
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     netD.train()
     netG.train()
     while epoch < num_epochs:
@@ -238,7 +238,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
-    plt.save_fig(f"../data/losses.png")
+    plt.savefig(f"../data/losses.png")
 
 
 
@@ -282,7 +282,7 @@ if __name__=='__main__':
     image_size = 64
 
 
-    num_epochs = 10
+    num_epochs = 100
     lr = 0.00005
     beta1 = 0.5
 
@@ -305,5 +305,5 @@ if __name__=='__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
     dataloader = get_dataloader(image_size, batch_size)
     train(
-        netG, netD, optimizerG, optimizerD, dataloader, False, num_epochs
+        netG, netD, optimizerG, optimizerD, dataloader, True, num_epochs
     )

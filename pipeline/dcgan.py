@@ -59,7 +59,9 @@ def make_img_path_list(use_dir_num):
     '''
     '''
     train_img_list = []
-    train_img_list = glob.glob(os.path.join(dataroot+"/cats/","*.jpg"))
+    train_img_list += glob.glob(os.path.join(dataroot+"/cat_faces/dataset-part1/","*.png"))
+    train_img_list += glob.glob(os.path.join(dataroot+"/cat_faces/dataset-part2/","*.png"))
+    train_img_list += glob.glob(os.path.join(dataroot+"/cat_faces/dataset-part3/","*.png"))
     return train_img_list
     for i in range(use_dir_num):
         use_dir = dataroot+f"/CAT_0{i}"

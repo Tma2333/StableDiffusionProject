@@ -1,0 +1,51 @@
+exp_name: CIFAR10-Full
+version: 1
+
+training:
+  batch_size: 500
+  # train loader
+  train_loader_worker: 8
+  eval_loader_worker: 8
+  #optimizer
+  optimizer: "Adam"
+  optimizer_cfg:
+    lr: 0.001
+    weight_decay: 0.0015
+  scheduler: "Cosine"
+  warm_up_epoch: 5
+  trainer:
+    # GPU config
+    gpus: [0]
+    strategy: ddp
+    unused_params: True
+    # Logging config
+    save_dir: /deep2/u/yma42/files/results/cs230
+    # Callbacks
+    save_top_k: 5 # checkpointing
+    monitor_metric: Val/epoch_avg_accuracy
+    monitor_mode: max
+    patience: 20 # early stop
+    # Misc
+    gradient_clip_val: 0.5
+    limit_train_batches: 1.0
+    enable_model_summary: False
+    max_epochs: 200
+
+dataset:
+  train_dataset: CIFAR10FullDataset
+  train_args:
+    base_path: /deep2/u/yma42/StableDiffusionProject/label_imbalance/data/cifar-10-batches-py
+    is_train: True
+    standardize: True
+  eval_dataset: CIFAR10FullDataset
+  eval_args:
+    base_path: '/deep2/u/yma42/StableDiffusionProject/label_imbalance/data/cifar-10-batches-py'
+    is_train: False
+    standardize: True
+  
+
+models:
+  # place holder
+  type: resnet50
+  pretrained: False
+

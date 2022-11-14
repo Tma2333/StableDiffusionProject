@@ -1,4 +1,5 @@
-## https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+## GAN code and models are based on the following tutorial
+# https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
 from __future__ import print_function
 #%matplotlib inline
@@ -64,23 +65,23 @@ def make_img_path_list(use_dir_num):
     train_img_list += glob.glob(os.path.join(dataroot+"/cat_faces/dataset-part2/","*.png"))
     train_img_list += glob.glob(os.path.join(dataroot+"/cat_faces/dataset-part3/","*.png"))
     return train_img_list
-    for i in range(use_dir_num):
-        use_dir = dataroot+f"/CAT_0{i}"
-        paths = glob.glob(os.path.join(use_dir,"*.jpg"))
-        train_img_list+=paths
-        print("num_img",len(train_img_list))
+    # for i in range(use_dir_num):
+    #     use_dir = dataroot+f"/CAT_0{i}"
+    #     paths = glob.glob(os.path.join(use_dir,"*.jpg"))
+    #     train_img_list+=paths
+    #     print("num_img",len(train_img_list))
     
     
-    for path_tuple in os.walk(dataroot+"/cat_breeds/"):
-        use_dir = glob.glob(os.path.join(dataroot+"/cat_breeds/"+path_tuple[0],"*.jpg"))
-        train_img_list+=paths
-        print("num_img",len(train_img_list))
+    # for path_tuple in os.walk(dataroot+"/cat_breeds/"):
+    #     use_dir = glob.glob(os.path.join(dataroot+"/cat_breeds/"+path_tuple[0],"*.jpg"))
+    #     train_img_list+=paths
+    #     print("num_img",len(train_img_list))
 
-    train_img_list+= glob.glob(os.path.join(dataroot+"/dog vs cat/dataset/training_set/cats/","*.jpg"))
-    print("num_img",len(train_img_list))
-    train_img_list += glob.glob(os.path.join(dataroot+"/dog vs cat/dataset/test_set/cats/","*.jpg"))
-    print("num_img",len(train_img_list))
-    return train_img_list
+    # train_img_list+= glob.glob(os.path.join(dataroot+"/dog vs cat/dataset/training_set/cats/","*.jpg"))
+    # print("num_img",len(train_img_list))
+    # train_img_list += glob.glob(os.path.join(dataroot+"/dog vs cat/dataset/test_set/cats/","*.jpg"))
+    # print("num_img",len(train_img_list))
+    # return train_img_list
 
 
                            
@@ -217,6 +218,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
                 fake = netG(fixed_noise).detach().cpu()
             plt.figure()
             plt.imshow(np.transpose(vutils.make_grid(fake, padding=2, normalize=True), (1,2,0)))
+            plt.tight_layout()
             plt.savefig(f"../data/gan_samples/epochs_{epoch}.png")
 
         
@@ -241,6 +243,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
+    plt.tight_layout()
     plt.savefig(f"../data/losses.png")
 
 

@@ -1,0 +1,50 @@
+exp_name: t5_finetune_new
+version: 1
+
+training:
+  batch_size: 768 #150 #768
+  # train loader
+  train_loader_worker: 8
+  eval_loader_worker: 8
+  trainer:
+    # GPU config
+    gpus: [2]
+    strategy: ddp
+    unused_params: True
+    # Logging config
+    save_dir: /deep2/u/yma42/files/results/
+    # Callbacks
+    save_top_k: 5 # checkpointing
+    monitor_metric: val_loss
+    monitor_mode: min
+    patience: 10 # early stop
+    # Misc
+    gradient_clip_val: 0.5
+    limit_train_batches: 1.0
+    enable_model_summary: False
+    max_epochs: 2
+
+
+model_name_or_path: 't5-small'
+tokenizer_name_or_path: 't5-small'
+max_input_length: 512
+max_output_length: 150
+freeze_encoder: False
+freeze_embeds: False
+learning_rate: 0.0003
+weight_decay: 0.0
+adam_epsilon: 0.00000001
+warmup_steps: 0
+train_batch_size: 4
+eval_batch_size: 4
+gradient_accumulation_steps: 8
+n_gpu: 1
+resume_from_checkpoint: null
+val_check_interval: 0.05
+n_val: 1000
+n_train: -1
+n_test: -1
+fp_16: False # if you want to enable 16-bit training then install apex and set this to true
+opt_level: O1 # you can find out more on optimisation levels here https://nvidia.github.io/apex/amp.html#opt-levels-and-properties
+max_grad_norm: 1.0 # if you enable 16-bit training then set this to a sensible value, 0.5 is a good default
+seed: 42

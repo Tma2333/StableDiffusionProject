@@ -141,7 +141,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         D_losses = []
     print("Starting Training Loop...", device)
     # For each epoch
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     netD.train()
     netG.train()
     while epoch < num_epochs:
@@ -149,8 +149,6 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         epoch+=1
         # For each batch in the dataloader
         for i, data in enumerate(dataloader, 0):
-            if i == 1:
-                break
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -224,7 +222,7 @@ def train(netG, netD, optimizerG, optimizerD, dataloader, checkpoint=False, num_
         
 
         
-        if epoch % 1 == 0:
+        if epoch % 10 == 0:
             save_model([gen_chpt, disc_chpt], epoch, [netG, netD],
              [optimizerG, optimizerD], [errG, errD], [G_losses, D_losses])
 
@@ -289,7 +287,7 @@ if __name__=='__main__':
     image_size = 64
 
 
-    num_epochs = 3
+    num_epochs = 100
     lr = 0.00005
     beta1 = 0.5
 

@@ -10,7 +10,7 @@ class Generator(nn.Module):
         self.nz = 100
 
         # Size of feature maps in generator
-        ngf = 256
+        ngf = 128
 
         # Number of channels in the training images. For color images this is 3
         self.ngpu = ngpu
@@ -68,7 +68,6 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
         )
 
     def forward(self, input):

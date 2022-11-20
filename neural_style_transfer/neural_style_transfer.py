@@ -31,7 +31,7 @@ def run_style_transfer(cnn, content_img, style_imgs, input_img, content_layers, 
     """Run the style transfer."""
     print('Building the style transfer model..')
     model, style_losses, content_losses = get_style_model_and_losses(cnn,
-         style_imgs, content_img, device)
+         style_imgs, content_img, device, content_weight, style_weight)
 
     # We want to optimize the input and not the model parameters so we
     # update all the requires_grad fields accordingly
@@ -51,16 +51,7 @@ def run_style_transfer(cnn, content_img, style_imgs, input_img, content_layers, 
 
             optimizer.zero_grad()
             model(input_img)
-            style_score = 0
-            content_score = 0
-
-            for sl in style_losses:
-                style_score += sl.loss
-            for cl in content_losses:
-                content_score += cl.loss
-
-            style_score *= style_weight
-            content_score *= content_weight
+            style_score , content_score = get_loss(style_losses, content_losses)
 
             loss = style_score + content_score
             loss.backward()
@@ -81,19 +72,6 @@ def run_style_transfer(cnn, content_img, style_imgs, input_img, content_layers, 
 
     return input_img
 
-
-def get_loss(style_losses, content_losses, style_weight, content_weight):
-    style_score = 0
-    content_score = 0
-
-    for sl in style_losses:
-        style_score += sl.loss
-    for cl in content_losses:
-        content_score += cl.loss
-
-    style_score *= style_weight
-    content_score *= content_weight
-    return style_score, content_score
 
 def van_gogh_analysis(output_image, content_image, device, imsize):
     #https://www.kaggle.com/code/amyjang/monet-cyclegan-tutorial/data
@@ -177,27 +155,28 @@ def van_gogh_analysis(output_image, content_image, device, imsize):
 
 
 if __name__=='__main__':
-    imsize = (224, 224)# if torch.cuda.is_available() else 128  # use small size if no gpu
-    device= 'cpu'
+    imsize = (448, 448)# if torch.cuda.is_available() else 128  # use small size if no gpu
+    device= 'cuda'
   
     model = get_vgg19(device)
-
+    content_weight=500
+    style_weight=1000
 
     content_layers_default = ['conv_4']
     style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
 
-    style_train, style_test = get_train_test("../data/VincentVanGogh/Arles/", imsize, device, max_imgs=5)
-    reference_image = image_loader("../data/VincentVanGogh/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
-    content_img =  image_loader("../data/louvre.png", device, imsize)
+    style_train, style_test = get_train_test("../data/Arles/", imsize, device, max_imgs=7)
+    reference_image = image_loader("../data/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
+    content_img =  image_loader("../data/spooky.jpg", device, imsize)
     generated_image = torch.clone(content_img).detach()
     output = run_style_transfer(model, content_img, style_train, generated_image,
-             content_layers_default, style_layers_default, num_steps=100)
-    imshow(output)
+             content_layers_default, style_layers_default, content_weight=content_weight, style_weight=style_weight, num_steps=5000)
+    imshow(output, "Output")
 
-    evaluate(content_img, output, reference_image, style_test, device)
+    evaluate(content_img, output, reference_image, style_test, device, content_weight, style_weight)
 
 
-    van_gogh_analysis(output, content_img, device, imsize)
+    #van_gogh_analysis(output, content_img, device, imsize)
 
     

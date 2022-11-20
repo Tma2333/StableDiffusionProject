@@ -74,6 +74,7 @@ def imshow(tensor, title=None):
     if title is not None:
         plt.title(title)
     #plt.pause(0.001)
+    plt.savefig(title+".png")
     plt.show()
 
 
@@ -82,8 +83,10 @@ def imshow(tensor, title=None):
 
 class ContentLoss(nn.Module):
 
-    def __init__(self, target,):
+    def __init__(self, target,weight):
         super(ContentLoss, self).__init__()
+        self.weight = weight
+
         # we 'detach' the target content from the tree used
         # to dynamically compute the gradient: this is a stated value,
         # not a variable. Otherwise the forward method of the criterion
@@ -92,7 +95,7 @@ class ContentLoss(nn.Module):
 
     def forward(self, input):
         
-        self.loss = F.mse_loss(input/torch.norm(input), self.target)
+        self.loss = self.weight*F.mse_loss(input/torch.norm(input), self.target)
         return input
 
 
@@ -115,18 +118,19 @@ def gram_matrix(input):
 
 class StyleLoss(nn.Module):
 
-    def __init__(self, target_features):
+    def __init__(self, target_features, weight):
         super(StyleLoss, self).__init__()
+        self.weight = weight
         self.targets = [gram_matrix(target_feature.unsqueeze(0)).detach() for target_feature in target_features]
 
     def forward(self, input):
         G = gram_matrix(input)
 
-        self.loss = torch.mean(torch.stack([F.mse_loss(G, t) for t in self.targets]) )
+        self.loss = self.weight*torch.mean(torch.stack([F.mse_loss(G, t) for t in self.targets]) )
         return input
 
 def get_style_model_and_losses(cnn,
-                               style_imgs, content_img, device):
+                               style_imgs, content_img, device, content_weight, style_weight):
     # normalization module
 
     content_layers = ['conv_4']
@@ -167,14 +171,14 @@ def get_style_model_and_losses(cnn,
         if name in content_layers:
             # add content loss:
             target = model(content_img).detach()
-            content_loss = ContentLoss(target)
+            content_loss = ContentLoss(target, content_weight)
             model.add_module("content_loss_{}".format(i), content_loss)
             content_losses.append(content_loss)
 
         if name in style_layers:
             # add style loss:
             target_features = model_copy(style_imgs).detach()
-            style_loss = StyleLoss(target_features)
+            style_loss = StyleLoss(target_features, style_weight)
             model.add_module("style_loss_{}".format(i), style_loss)
             style_losses.append(style_loss)
 
@@ -193,7 +197,7 @@ def get_style_model_and_losses(cnn,
 
 def get_input_optimizer(input_img):
     # this line to show that input is a parameter that requires a gradient
-    optimizer = optim.LBFGS([input_img], lr=0.5)
+    optimizer = optim.LBFGS([input_img], lr=0.05)
     return optimizer
 
 
@@ -201,7 +205,7 @@ def get_input_optimizer(input_img):
 
 
 
-def get_loss(style_losses, content_losses, style_weight, content_weight):
+def get_loss(style_losses, content_losses):
     style_score = 0
     content_score = 0
 
@@ -209,7 +213,4 @@ def get_loss(style_losses, content_losses, style_weight, content_weight):
         style_score += sl.loss
     for cl in content_losses:
         content_score += cl.loss
-
-    style_score *= style_weight
-    content_score *= content_weight
     return style_score, content_score

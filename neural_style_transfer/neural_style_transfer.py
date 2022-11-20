@@ -1,5 +1,5 @@
 """
-Imports
+Based on https://pytorch.org/tutorials/advanced/neural_style_tutorial.html
 """
 
 import os
@@ -19,12 +19,14 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.models as models
 import glob
-device= 'cpu'
-model =  models.vgg19(pretrained=True).features.to(device).eval()
 
-for param in model.parameters():
-    param.requires_grad = False
+def get_vgg19(device):
 
+    model =  models.vgg19(pretrained=True).features.to(device).eval()
+
+    for param in model.parameters():
+        param.requires_grad = False
+    return model
 
 
 
@@ -58,8 +60,7 @@ def total_cost(J_content, J_style, alpha = 10, beta = 40):
 
     return J
 
-cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
-cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
+
 
 # create a module to normalize input image so we can easily put it in a
 # nn.Sequential
@@ -96,7 +97,7 @@ loader = transforms.Compose([
     transforms.ToTensor()])  # transform it into a torch tensor
 
 
-def image_loader(image_name):
+def image_loader(image_name, device):
     image = Image.open(image_name)
 
     # fake batch dimension required to fit network's input dimensions
@@ -104,16 +105,6 @@ def image_loader(image_name):
     return image.to(device, torch.float)
 
 
-content_img= image_loader("../data/picasso.jpeg")
-
-style_img =  image_loader("../data/picasso2.jpg")
-
-# plt.imshow(torch.permute(content_img.squeeze(), (1, 2, 0)))
-
-# plt.show()
-# plt.imshow(torch.permute(style_img.squeeze(), (1, 2, 0)))
-# plt.show()
-generated_image = torch.clone(content_img).detach()
 
 
 
@@ -312,16 +303,16 @@ def get_loss(style_losses, content_losses, style_weight, content_weight):
     content_score *= content_weight
     return style_score, content_score
 
-def van_gogh_analysis(output_image, content_image):
+def van_gogh_analysis(output_image, content_image, device):
     #https://www.kaggle.com/code/amyjang/monet-cyclegan-tutorial/data
     #https://www.kaggle.com/datasets/ipythonx/van-gogh-paintings
-    print("Starting analysis")
+    
+ 
     folder_path = "../data/VincentVanGogh/Arles/"
 
     imgs_vg = glob.glob(os.path.join(folder_path,"*.jpg"))
 
-
-    image_vg = image_loader(folder_path+"A Pair of Leather Clogs.jpg")
+    image_vg = image_loader(folder_path+"A Pair of Leather Clogs.jpg", device)
     image_original = content_image
     
     cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
@@ -342,7 +333,7 @@ def van_gogh_analysis(output_image, content_image):
     for i, content_path_vg in enumerate(imgs_vg):
         if i == 50:
             break
-        content_img_vg = image_loader(content_path_vg)
+        content_img_vg = image_loader(content_path_vg, device)
 
         #Send Van Gogh image to all 3 models
         model_output(content_img_vg)
@@ -390,18 +381,20 @@ def van_gogh_analysis(output_image, content_image):
     plt.show()
 
 if __name__=='__main__':
+    device= 'cpu'
+    cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
+    cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
+    model = get_vgg19(device)
 
+    style_img = image_loader("../data/VincentVanGogh/Arles/Wheat Stacks with Reaper.jpg", device)
 
-
-    style_img = image_loader("../data/VincentVanGogh/Arles/Wheat Stacks with Reaper.jpg")
-
-    content_img =  image_loader("../data/louvre.png")
+    content_img =  image_loader("../data/louvre.png", device)
 
     generated_image = torch.clone(content_img).detach()
     output = run_style_transfer(model, cnn_normalization_mean, cnn_normalization_std,
                             content_img, style_img, generated_image, num_steps=100)
     imshow(output)
 
-    van_gogh_analysis(output, content_img)
+    van_gogh_analysis(output, content_img, device)
 
     

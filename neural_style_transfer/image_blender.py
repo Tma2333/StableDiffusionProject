@@ -33,6 +33,7 @@ class Normalization(nn.Module):
 
     def forward(self, imgs):
         # normalize img
+        return imgs
         imgs =(imgs-self.mean)/self.std
         return imgs
 
@@ -69,10 +70,10 @@ class ContentLoss(nn.Module):
         # will throw an error.
         self.target = target.detach()/torch.norm(target)
 
-    def forward(self, targets):
+    def forward(self, inputs):
         
-        self.loss = self.weight*F.mse_loss(targets.flatten()/torch.norm(targets.flatten()), self.target)
-        return targets
+        self.loss = self.weight*F.mse_loss(inputs/torch.norm(inputs), self.target)
+        return inputs
 
 
 
@@ -96,7 +97,7 @@ class StyleLoss(nn.Module):
         self.weight = weight
 
     def forward(self, inputs):
-        Gs = [gram_matrix(inp.unsqueeze(0)).detach() for inp in inputs]
+        Gs = [gram_matrix(inp.unsqueeze(0)) for inp in inputs]
         self.loss = 0
         for i in range(len(Gs)):
             for j in range(i+1,len(Gs)):
@@ -118,14 +119,13 @@ def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_we
 
     # just in order to have an iterable access to or list of content/syle
     # losses
-    original_input = input_imgs.clone()
+    original_input = input_imgs.clone().detach()
     content_losses = []
     style_losses = []
 
     # assuming that cnn is a nn.Sequential, so we make a new nn.Sequential
     # to put in modules that are supposed to be activated sequentially
     model = nn.Sequential(normalization)
-    model_copy = nn.Sequential(normalization)
     i = 0  # increment every time we see a conv
     for layer in cnn.children():
         if isinstance(layer, nn.Conv2d):
@@ -145,15 +145,11 @@ def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_we
             raise RuntimeError('Unrecognized layer: {}'.format(layer.__class__.__name__))
 
         model.add_module(name, layer)
-        model_copy.add_module(name, layer)
 
         if name in content_layers:
             # add content loss:
-            targets = []
-            for image in original_input:
-                target = model_copy(image).detach()
-                targets.append(target)
-            targets = torch.cat(targets, 0).flatten()
+            targets = model(original_input).detach()
+            
             content_loss = ContentLoss(targets, content_weight)
             model.add_module(f"content_loss_{i}", content_loss)
             content_losses.append(content_loss)
@@ -192,8 +188,8 @@ def run_style_transfer(cnn, input_imgs,  num_steps=300,
 
     # We want to optimize the input and not the model parameters so we
     # update all the requires_grad fields accordingly
-    input_imgs.requires_grad_(True)
     model.requires_grad_(False)
+    input_imgs.requires_grad_(True)
 
     optimizer = get_input_optimizer(input_imgs)
 
@@ -208,7 +204,7 @@ def run_style_transfer(cnn, input_imgs,  num_steps=300,
 
             optimizer.zero_grad()
             model(input_imgs)
-            style_score , content_score = get_loss(style_losses, content_losses)
+            style_score, content_score = get_loss(style_losses, content_losses)
 
             loss = style_score + content_score
             loss.backward()
@@ -232,25 +228,26 @@ def run_style_transfer(cnn, input_imgs,  num_steps=300,
 
 
 if __name__=='__main__':
-    imsize = (448, 448)# if torch.cuda.is_available() else 128  # use small size if no gpu
-    device= 'cpu'
+    imsize = (224, 224)# if torch.cuda.is_available() else 128  # use small size if no gpu
+    device= 'cuda'
   
     model = get_vgg19(device)
-    content_weight=500
-    style_weight=1000
+    content_weight=1
+    style_weight=100000000
 
     content_layers_default = ['conv_4']
     style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
-    img1 = image_loader("../data/VincentVanGogh/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
-    img2 = image_loader("../data/VincentVanGogh/Drawings/A Carpenter with Apron.jpg", device, imsize)
+    img1 = image_loader("../data/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
+    img2 = image_loader("../data/A Carpenter with Apron.jpg", device, imsize)
 
     input_imgs = torch.cat([img1, img2], 0)
 
     #style_train, style_test = get_train_test("../data/Arles/", imsize, device, max_imgs=7)
 
     
-    output = run_style_transfer(model, input_imgs, content_weight=content_weight, style_weight=style_weight, num_steps=5000, device=device)
-    for out in output:
-        imshow(out, "Output")
+    output = run_style_transfer(model, input_imgs, content_weight=content_weight, style_weight=style_weight, 
+                    num_steps=300, device=device)
+    for i, out in enumerate(output):
+        imshow(out, f"../data/image_blender_output/Output_{i}")
 

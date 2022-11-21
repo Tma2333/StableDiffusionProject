@@ -5,6 +5,9 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.models as models
 import torch
+
+from datafetching import *
+from model import get_input_optimizer, get_loss
 def get_vgg19(device):
 
     model =  models.vgg19(pretrained=True).features.to(device).eval()
@@ -17,34 +20,6 @@ def get_vgg19(device):
 
 
 
-
-
-
-
-def total_cost(J_content, J_style, alpha = 10, beta = 40):
-    """
-    Computes the total cost function
-    
-    Arguments:
-    J_content -- content cost coded above
-    J_style -- style cost coded above
-    alpha -- hyperparameter weighting the importance of the content cost
-    beta -- hyperparameter weighting the importance of the style cost
-    
-    Returns:
-    J -- total cost as defined by the formula above.
-    """
-    ### START CODE HERE
-    
-    #(≈1 line)
-    J = alpha*J_content + beta*J_style
-    
-    ### START CODE HERE
-
-    return J
-
-
-
 # create a module to normalize input image so we can easily put it in a
 # nn.Sequential
 class Normalization(nn.Module):
@@ -53,12 +28,13 @@ class Normalization(nn.Module):
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with image Tensor of shape [B x C x H x W].
         # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = torch.tensor(mean).clone().detach().view(-1, 1, 1)
+        self.std = torch.tensor(std).clone().detach().view(-1, 1,1)
 
-    def forward(self, img):
+    def forward(self, imgs):
         # normalize img
-        return (img - self.mean) / self.std
+        imgs =(imgs-self.mean)/self.std
+        return imgs
 
 
 
@@ -93,10 +69,10 @@ class ContentLoss(nn.Module):
         # will throw an error.
         self.target = target.detach()/torch.norm(target)
 
-    def forward(self, input):
+    def forward(self, targets):
         
-        self.loss = self.weight*F.mse_loss(input/torch.norm(input), self.target)
-        return input
+        self.loss = self.weight*F.mse_loss(targets.flatten()/torch.norm(targets.flatten()), self.target)
+        return targets
 
 
 
@@ -111,17 +87,13 @@ def gram_matrix(input):
     # we 'normalize' the values of the gram matrix
 
     G = G.div(torch.norm(G))
-    return G#G.div(a * b * c * d)
-
-
-
+    return G
 
 class StyleLoss(nn.Module):
 
-    def __init__(self, target_features, weight):
+    def __init__(self,  weight):
         super(StyleLoss, self).__init__()
         self.weight = weight
-        self.targets = [gram_matrix(target_feature.unsqueeze(0)).detach() for target_feature in target_features]
 
     def forward(self, inputs):
         Gs = [gram_matrix(inp.unsqueeze(0)).detach() for inp in inputs]
@@ -130,7 +102,7 @@ class StyleLoss(nn.Module):
             for j in range(i+1,len(Gs)):
                 self.loss = torch.add(self.loss, self.weight*F.mse_loss(Gs[i], Gs[j]))
         self.loss = self.loss.div(len(Gs)**2/2)
-        return self.loss
+        return inputs
 
 def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_weight):
 
@@ -174,20 +146,22 @@ def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_we
 
         model.add_module(name, layer)
         model_copy.add_module(name, layer)
+
         if name in content_layers:
             # add content loss:
-            j = 0
+            targets = []
             for image in original_input:
-                j+=1
-                target = model(image).detach()
-                content_loss = ContentLoss(target, content_weight)
-                model.add_module(f"content_loss_{i}{j}", content_loss)
-                content_losses.append(content_loss)
+                target = model_copy(image).detach()
+                targets.append(target)
+            targets = torch.cat(targets, 0).flatten()
+            content_loss = ContentLoss(targets, content_weight)
+            model.add_module(f"content_loss_{i}", content_loss)
+            content_losses.append(content_loss)
 
         if name in style_layers:
             # add style loss:
             style_loss = StyleLoss(style_weight)
-            model.add_module("style_loss_{}".format(i), style_loss)
+            model.add_module(f"style_loss_{i}", style_loss)
             style_losses.append(style_loss)
 
     # now we trim off the layers after the last content and style losses
@@ -203,40 +177,25 @@ def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_we
 
 
 
-def get_input_optimizer(input_img):
-    # this line to show that input is a parameter that requires a gradient
-    optimizer = optim.LBFGS([input_img], lr=0.05)
-    return optimizer
 
 
 
 
 
 
-def get_loss(style_losses, content_losses):
-    style_score = 0
-    content_score = 0
-
-    for sl in style_losses:
-        style_score += sl.loss
-    for cl in content_losses:
-        content_score += cl.loss
-    return style_score, content_score
-
-
-def run_style_transfer(cnn, content_img, style_imgs, input_img, content_layers, style_layers, num_steps=300,
-                       style_weight=1000000, content_weight=1):
+def run_style_transfer(cnn, input_imgs,  num_steps=300,
+                       style_weight=1000000, content_weight=1, device='cpu'):
     """Run the style transfer."""
     print('Building the style transfer model..')
     model, style_losses, content_losses = get_style_model_and_losses(cnn,
-         style_imgs, content_img, device, content_weight, style_weight)
+         input_imgs, device, content_weight, style_weight)
 
     # We want to optimize the input and not the model parameters so we
     # update all the requires_grad fields accordingly
-    input_img.requires_grad_(True)
+    input_imgs.requires_grad_(True)
     model.requires_grad_(False)
 
-    optimizer = get_input_optimizer(input_img)
+    optimizer = get_input_optimizer(input_imgs)
 
     print('Optimizing..')
     run = [0]
@@ -245,10 +204,10 @@ def run_style_transfer(cnn, content_img, style_imgs, input_img, content_layers, 
         def closure():
             # correct the values of updated input image
             with torch.no_grad():
-                input_img.clamp_(0, 1)
+                input_imgs.clamp_(0, 1)
 
             optimizer.zero_grad()
-            model(input_img)
+            model(input_imgs)
             style_score , content_score = get_loss(style_losses, content_losses)
 
             loss = style_score + content_score
@@ -266,8 +225,32 @@ def run_style_transfer(cnn, content_img, style_imgs, input_img, content_layers, 
 
     # a last correction...
     with torch.no_grad():
-        input_img.clamp_(0, 1)
+        input_imgs.clamp_(0, 1)
 
-    return input_img
+    return input_imgs
 
+
+
+if __name__=='__main__':
+    imsize = (448, 448)# if torch.cuda.is_available() else 128  # use small size if no gpu
+    device= 'cpu'
+  
+    model = get_vgg19(device)
+    content_weight=500
+    style_weight=1000
+
+    content_layers_default = ['conv_4']
+    style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
+
+    img1 = image_loader("../data/VincentVanGogh/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
+    img2 = image_loader("../data/VincentVanGogh/Drawings/A Carpenter with Apron.jpg", device, imsize)
+
+    input_imgs = torch.cat([img1, img2], 0)
+
+    #style_train, style_test = get_train_test("../data/Arles/", imsize, device, max_imgs=7)
+
+    
+    output = run_style_transfer(model, input_imgs, content_weight=content_weight, style_weight=style_weight, num_steps=5000, device=device)
+    for out in output:
+        imshow(out, "Output")
 

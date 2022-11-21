@@ -68,11 +68,11 @@ class ContentLoss(nn.Module):
         # to dynamically compute the gradient: this is a stated value,
         # not a variable. Otherwise the forward method of the criterion
         # will throw an error.
-        self.target = target.detach()/torch.norm(target)
+        self.target = target.detach()
 
     def forward(self, inputs):
         
-        self.loss = self.weight*F.mse_loss(inputs/torch.norm(inputs), self.target)
+        self.loss = self.weight*F.mse_loss(inputs, self.target)
         return inputs
 
 
@@ -240,8 +240,8 @@ if __name__=='__main__':
 
     img1 = image_loader("../data/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
     img2 = image_loader("../data/A Carpenter with Apron.jpg", device, imsize)
-
-    input_imgs = torch.cat([img1, img2], 0)
+    img3 = image_loader("../data/Arles/Still Life Vase with Oleanders and Books.jpg", device, imsize)
+    input_imgs = torch.cat([img1, img2, img3], 0)
 
     #style_train, style_test = get_train_test("../data/Arles/", imsize, device, max_imgs=7)
 

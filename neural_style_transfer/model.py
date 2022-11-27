@@ -3,17 +3,30 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
-import torchvision.models as models
+#import torchvision.models as models
 import torch
+from torchvision.models import resnet50, ResNet50_Weights, vgg19
 def get_vgg19(device):
 
-    model =  models.vgg19(pretrained=True).features.to(device).eval()
+    model =  vgg19(pretrained=True).features.to(device).eval()
 
     for param in model.parameters():
         param.requires_grad = False
     return model
 
 
+
+def get_resnet50(device):
+
+    # Using pretrained weights:
+    weights = ResNet50_Weights.DEFAULT
+    model = resnet50(weights=weights)
+
+    #print(weights.shape)
+    print("Model fetched")
+    for param in model.parameters():
+        param.requires_grad = False
+    return model
 
 
 
@@ -195,9 +208,9 @@ def get_style_model_and_losses(cnn,
 
 
 
-def get_input_optimizer(input_img):
+def get_input_optimizer(input_img, lr = 0.05):
     # this line to show that input is a parameter that requires a gradient
-    optimizer = optim.LBFGS([input_img], lr=0.05)
+    optimizer = optim.LBFGS([input_img], lr=lr)
     return optimizer
 
 

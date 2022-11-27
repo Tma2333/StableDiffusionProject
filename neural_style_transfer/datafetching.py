@@ -13,7 +13,7 @@ def image_loader(image_name, device, imsize):
 
 
     image = Image.open(image_name)
-
+    print(image_name, image.mode)
     # fake batch dimension required to fit network's input dimensions
     image = loader(image).unsqueeze(0)
     return image.to(device, torch.float)
@@ -32,3 +32,11 @@ def get_train_test(folder_path, imsize, device, max_imgs):
     return train, test
     
 
+
+def batch_loader(filepaths, device, imsize):
+
+    imgs = []
+    for fp in filepaths:
+        img = image_loader(fp, device,  imsize)
+        imgs.append(img)
+    return torch.cat(imgs,dim=0)

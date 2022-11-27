@@ -5,9 +5,11 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.models as models
 import torch
+import numpy as np
 
 from datafetching import *
 from model import get_input_optimizer, get_loss
+from lossFunctions import ContentLoss, StyleLoss_blending
 def get_vgg19(device):
 
     model =  models.vgg19(pretrained=True).features.to(device).eval()
@@ -58,52 +60,8 @@ def imshow(tensor, title=None):
 
 
 
-class ContentLoss(nn.Module):
-
-    def __init__(self, target,weight):
-        super(ContentLoss, self).__init__()
-        self.weight = weight
-
-        # we 'detach' the target content from the tree used
-        # to dynamically compute the gradient: this is a stated value,
-        # not a variable. Otherwise the forward method of the criterion
-        # will throw an error.
-        self.target = target.detach()
-
-    def forward(self, inputs):
-        
-        self.loss = self.weight*F.mse_loss(inputs, self.target)
-        return inputs
 
 
-
-def gram_matrix(input):
-    a, b, c, d = input.size()  # a=batch size(=1)
-    # b=number of feature maps
-    # (c,d)=dimensions of a f. map (N=c*d)
-    features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
-
-    G = torch.mm(features, features.t())  # compute the gram product
-
-    # we 'normalize' the values of the gram matrix
-
-    G = G.div(torch.norm(G))
-    return G
-
-class StyleLoss(nn.Module):
-
-    def __init__(self,  weight):
-        super(StyleLoss, self).__init__()
-        self.weight = weight
-
-    def forward(self, inputs):
-        Gs = [gram_matrix(inp.unsqueeze(0)) for inp in inputs]
-        self.loss = 0
-        for i in range(len(Gs)):
-            for j in range(i+1,len(Gs)):
-                self.loss = torch.add(self.loss, self.weight*F.mse_loss(Gs[i], Gs[j]))
-        self.loss = self.loss.div(len(Gs)**2/2)
-        return inputs
 
 def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_weight):
 
@@ -156,13 +114,14 @@ def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_we
 
         if name in style_layers:
             # add style loss:
-            style_loss = StyleLoss(style_weight)
+            targets = model(original_input).detach()
+            style_loss = StyleLoss_blending(targets, style_weight)
             model.add_module(f"style_loss_{i}", style_loss)
             style_losses.append(style_loss)
 
     # now we trim off the layers after the last content and style losses
     for i in range(len(model) - 1, -1, -1):
-        if isinstance(model[i], ContentLoss) or isinstance(model[i], StyleLoss):
+        if isinstance(model[i], ContentLoss) or isinstance(model[i], StyleLoss_blending):
             break
 
     model = model[:(i + 1)]
@@ -170,28 +129,13 @@ def get_style_model_and_losses(cnn, input_imgs, device, content_weight, style_we
     return model, style_losses, content_losses
 
 
-
-
-
-
-
-
-
-
-
-def run_style_transfer(cnn, input_imgs,  num_steps=300,
-                       style_weight=1000000, content_weight=1, device='cpu'):
-    """Run the style transfer."""
-    print('Building the style transfer model..')
-    model, style_losses, content_losses = get_style_model_and_losses(cnn,
-         input_imgs, device, content_weight, style_weight)
-
+def train(model, style_losses, content_losses, input, num_steps, lr=0.1):
     # We want to optimize the input and not the model parameters so we
     # update all the requires_grad fields accordingly
     model.requires_grad_(False)
-    input_imgs.requires_grad_(True)
+    input.requires_grad_(True)
 
-    optimizer = get_input_optimizer(input_imgs)
+    optimizer = get_input_optimizer(input, lr=lr)
 
     print('Optimizing..')
     run = [0]
@@ -200,10 +144,10 @@ def run_style_transfer(cnn, input_imgs,  num_steps=300,
         def closure():
             # correct the values of updated input image
             with torch.no_grad():
-                input_imgs.clamp_(0, 1)
+                input.clamp_(0, 1)
 
             optimizer.zero_grad()
-            model(input_imgs)
+            model(input)
             style_score, content_score = get_loss(style_losses, content_losses)
 
             loss = style_score + content_score
@@ -217,14 +161,26 @@ def run_style_transfer(cnn, input_imgs,  num_steps=300,
 
             return style_score + content_score
 
+        #torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         optimizer.step(closure)
 
     # a last correction...
     with torch.no_grad():
-        input_imgs.clamp_(0, 1)
+        input.clamp_(0, 1)
 
-    return input_imgs
+    return input
 
+
+def run_style_transfer(cnn, input_imgs,  num_steps=300,
+                       style_weight=1000000, content_weight=1, device='cpu'):
+    """Run the style transfer."""
+    print('Building the style transfer model..')
+    model, style_losses, content_losses = get_style_model_and_losses(cnn,
+         input_imgs, device, content_weight, style_weight)
+    output = train(model, style_losses, content_losses,
+        input_imgs, num_steps)
+    return output
+    
 
 
 if __name__=='__main__':
@@ -232,22 +188,29 @@ if __name__=='__main__':
     device= 'cuda'
   
     model = get_vgg19(device)
-    content_weight=1
-    style_weight=100000000
+    content_weight=50
+    style_weight=10000000
 
-    content_layers_default = ['conv_4']
-    style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-
-    img1 = image_loader("../data/Arles/Wheat Stacks with Reaper.jpg", device, imsize)
-    img2 = image_loader("../data/A Carpenter with Apron.jpg", device, imsize)
+    imgs_samples = torch.cat([
+        image_loader(path, device, imsize) for path in glob.glob(os.path.join("../data/samples2/","*o.png"))
+    ], 0)
+        
+    img1 = image_loader("../data/Arles/A Pair of Leather Clogs.jpg", device, imsize)
+    img2 = image_loader("../data/samples/redhood_CB.png", device, imsize)
     img3 = image_loader("../data/Arles/Still Life Vase with Oleanders and Books.jpg", device, imsize)
-    input_imgs = torch.cat([img1, img2, img3], 0)
+    img4 = image_loader("../data/spooky.jpg", device, imsize)
+    input_imgs = torch.cat([img1, img3], 0)
 
     #style_train, style_test = get_train_test("../data/Arles/", imsize, device, max_imgs=7)
 
     
-    output = run_style_transfer(model, input_imgs, content_weight=content_weight, style_weight=style_weight, 
-                    num_steps=300, device=device)
+    output = run_style_transfer(model, imgs_samples, content_weight=content_weight, style_weight=style_weight, 
+                    num_steps=1000, device=device)
+
     for i, out in enumerate(output):
-        imshow(out, f"../data/image_blender_output/Output_{i}")
+        fpath = f"../data/image_blender_output/Output_{i}.png"
+        A = np.transpose(out.detach().cpu().squeeze(),(1,2,0)).numpy()
+        im = Image.fromarray((A * 255).astype(np.uint8))
+        im.save(fpath)    
+        #imshow(out, fpath )
 

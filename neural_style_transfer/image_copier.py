@@ -10,7 +10,7 @@ from datafetching import *
 from model import get_input_optimizer, get_loss
 from image_blender import Normalization, imshow, get_vgg19, train
 from lossFunctions import ContentLoss, StyleLoss
-
+import numpy as np
 
 
 def get_style_model_and_losses_w_references(cnn, input_imgs, reference_imgs,  device, content_weight, style_weight):
@@ -108,15 +108,27 @@ if __name__=='__main__':
     content_weight=50
     style_weight=100000000
 
-    imgs_vg = batch_loader(glob.glob(os.path.join("../data/Arles/","*.jpg"))[:n], device, imsize)
-    imgs_samples = batch_loader(glob.glob(os.path.join("../data/samples2/","*o.png"))[:n], device, imsize)
+    #imgs_vg = batch_loader(glob.glob(os.path.join("../data/Arles/","*.jpg"))[:n], device, imsize)
+    n = 5
+    imgs_ref = batch_loader(["../data/pikene_munch.jpg", "../data/scream.jpg"], device, imsize)
+    
+    folder = "narcissus_seed132"
+    paths = glob.glob(os.path.join(f"../data/{folder}/","*guidance.png"))
+    paths.sort(key = lambda x: int("".join([c for c in x if c.isnumeric()])))
+    imgs_samples = batch_loader(paths, device, imsize)
     
    
 
 
     
-    output = run_style_transfer(model, input_imgs=imgs_samples, reference_imgs=imgs_vg, content_weight=content_weight, style_weight=style_weight, 
-                    num_steps=10000, device=device)
+    output = run_style_transfer(model, input_imgs=imgs_samples, reference_imgs=imgs_ref, content_weight=content_weight, style_weight=style_weight, 
+                    num_steps=50, device=device)
     for i, out in enumerate(output):
-        imshow(out, f"../data/image_copier_output/Output_{i}")
-
+        try:
+            os.mkdir(f"../data/copier_{folder}")
+        except:
+            pass
+        fpath = f"../data/copier_{folder}/Output_{i}.png"
+        A = np.transpose(out.detach().cpu().squeeze(),(1,2,0)).numpy()
+        im = Image.fromarray((A * 255).astype(np.uint8))
+        im.save(fpath)  

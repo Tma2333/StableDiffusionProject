@@ -190,22 +190,24 @@ if __name__=='__main__':
     model = get_vgg19(device)
     content_weight=50
     style_weight=10000000
-
+    folder = "icarus_seed132"
+    paths = glob.glob(os.path.join(f"../data/{folder}/","*.png"))
+    paths.sort(key = lambda x: int("".join([c for c in x if c.isnumeric()])))
     imgs_samples = torch.cat([
-        image_loader(path, device, imsize) for path in glob.glob(os.path.join("../data/samples2/","*o.png"))
+        image_loader(path, device, imsize) for path in paths
     ], 0)
         
-    img1 = image_loader("../data/Arles/A Pair of Leather Clogs.jpg", device, imsize)
-    img2 = image_loader("../data/samples/redhood_CB.png", device, imsize)
-    img3 = image_loader("../data/Arles/Still Life Vase with Oleanders and Books.jpg", device, imsize)
-    img4 = image_loader("../data/spooky.jpg", device, imsize)
-    input_imgs = torch.cat([img1, img3], 0)
+    # img1 = image_loader("../data/Arles/A Pair of Leather Clogs.jpg", device, imsize)
+    # img2 = image_loader("../data/samples/redhood_CB.png", device, imsize)
+    # img3 = image_loader("../data/Arles/Still Life Vase with Oleanders and Books.jpg", device, imsize)
+    # img4 = image_loader("../data/spooky.jpg", device, imsize)
+    # input_imgs = torch.cat([img1, img3], 0)
 
     #style_train, style_test = get_train_test("../data/Arles/", imsize, device, max_imgs=7)
 
     
     output = run_style_transfer(model, imgs_samples, content_weight=content_weight, style_weight=style_weight, 
-                    num_steps=1000, device=device)
+                    num_steps=100, device=device)
 
     for i, out in enumerate(output):
         fpath = f"../data/image_blender_output/Output_{i}.png"

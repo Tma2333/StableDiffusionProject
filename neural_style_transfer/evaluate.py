@@ -58,6 +58,6 @@ if __name__=='__main__':
     imsize = (224, 224)
 
     orig = glob.glob(os.path.join("../data/samples2/","*o.png"))
-    output = glob.glob(os.path.join("../data/image_blender_output/","*.png"))
+    output = glob.glob(os.path.join("../data/image_copier_output/","*.png"))
     evaluate_on_tsne(orig, output, device, imsize)
 

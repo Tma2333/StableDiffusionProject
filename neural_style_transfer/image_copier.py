@@ -109,10 +109,9 @@ if __name__=='__main__':
     style_weight=100000000
 
     #imgs_vg = batch_loader(glob.glob(os.path.join("../data/Arles/","*.jpg"))[:n], device, imsize)
-    n = 5
     imgs_ref = batch_loader(["../data/pikene_munch.jpg", "../data/scream.jpg"], device, imsize)
     
-    folder = "narcissus_seed132"
+    folder = "match_sticks_seed4952"
     paths = glob.glob(os.path.join(f"../data/{folder}/","*guidance.png"))
     paths.sort(key = lambda x: int("".join([c for c in x if c.isnumeric()])))
     imgs_samples = batch_loader(paths, device, imsize)
@@ -122,7 +121,7 @@ if __name__=='__main__':
 
     
     output = run_style_transfer(model, input_imgs=imgs_samples, reference_imgs=imgs_ref, content_weight=content_weight, style_weight=style_weight, 
-                    num_steps=50, device=device)
+                    num_steps=400, device=device)
     for i, out in enumerate(output):
         try:
             os.mkdir(f"../data/copier_{folder}")

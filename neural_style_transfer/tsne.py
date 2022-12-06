@@ -25,7 +25,7 @@ def get_featuresResnet( input, device, output_name='Sequential_3'):
 
     model = get_resnet50(device)
     # if device=='cpu':
-    summary(model,input[0].shape, device=device)
+    #summary(model,input[0].shape, device=device)
     #raise Exception
     # cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
     # cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
@@ -38,10 +38,8 @@ def get_featuresResnet( input, device, output_name='Sequential_3'):
     x = input
     i=0
     for layer in model.children():
-        #print(layer.type)
         name = layer.type
         if isinstance(layer, nn.Sequential):
-            print(layer[0])
             i += 1
             name = 'Sequential_{}'.format(i)
                 
@@ -63,7 +61,7 @@ def get_featuresResnet( input, device, output_name='Sequential_3'):
             
 
 
-def get_features( input, device, output_name='conv_4'):
+def get_features( input, device):
 
     model = get_vgg19(device)
 
@@ -72,10 +70,12 @@ def get_features( input, device, output_name='conv_4'):
 
 
     normalization = Normalization(cnn_normalization_mean, cnn_normalization_std).to(device)
+    style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
 
     x = normalization(input)
     i=0
+    out = []
     for layer in model.children():
         if isinstance(layer, nn.Conv2d):
             i += 1
@@ -95,7 +95,7 @@ def get_features( input, device, output_name='conv_4'):
 
         x = layer(x)
 
-        if name == output_name:
+        if name in style_layers:
             # add content loss:
             for i in range(x.shape[0]):
                 x[i] = x[i].div(x[i].norm())
@@ -106,7 +106,9 @@ def get_features( input, device, output_name='conv_4'):
             features = x_clone.view(a, b, c * d) 
             G = torch.matmul(features, torch.permute(features, (0, 2, 1)))
             G = G.detach().numpy().reshape(G.shape[0], -1)
-            return activations,  G
+
+            out.append(G)
+    return activations,  np.concatenate(out, axis=0)
             
 
   
@@ -115,9 +117,9 @@ def get_features( input, device, output_name='conv_4'):
 
 
 
-def plot_tsne(inputs, labels, n_classes=2, n_components=2, title="tsne.png"):
+def plot_tsne(inputs, labels, n_classes=2, n_components=2, title="tsne.png", perplexity=10):
 
-    tsne = TSNE(n_components=n_components, verbose=1, random_state=123, n_iter=10000, perplexity=5)
+    tsne = TSNE(n_components=n_components, verbose=0, random_state=50, n_iter=10000, perplexity=perplexity)
     z = tsne.fit_transform(inputs)
 
     x = z[:,0]
@@ -145,12 +147,28 @@ def plot_tsne(inputs, labels, n_classes=2, n_components=2, title="tsne.png"):
     else:
         df = pd.DataFrame()
         df["y"] = labels
-        df["comp-1"] = x
-        df["comp-2"] = y
+        df["Axis 1"] = x
+        df["Axis 2"] = y
 
-        sns.scatterplot(x="comp-1", y="comp-2", hue=df.y.tolist(),
+        b = sns.scatterplot(x="Axis 1", y="Axis 2", hue=df.y.tolist(),
                 #palette=sns.color_palette("hls", 2),
-                data=df).set(title="T-SNE projection")
+                data=df)
+        n= len(z)//2
+        print(b)
+        title_new = "".join(title.split("_")[:-2])
+        if title_new == "matchsticks":
+            title_new = "GLM"
+        if title_new == "icarus":
+            title_new = "Icarus"
+        if title_new == "narcissus":
+            title_new = "Narcissus"
+        b.axes.set_title(title_new,fontsize=24)
+       
+        print("Variance after T-SNE: Original", np.std(z[:n]))
+        print("Variance after T-SNE: Learned", np.std(z[n:]))
+        plt.legend( fontsize='14')
+    #plt.title(title, fontdict={'fontsize': 12})
+    plt.tight_layout()
     plt.savefig("../data/tsne/"+title)
     plt.show()
 

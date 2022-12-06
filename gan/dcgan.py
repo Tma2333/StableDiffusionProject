@@ -310,5 +310,5 @@ if __name__=='__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
     dataloader = get_dataloader(image_size, batch_size)
     train(
-        netG, netD, optimizerG, optimizerD, dataloader, True, num_epochs
+        netG, netD, optimizerG, optimizerD, dataloader, False, num_epochs
     )

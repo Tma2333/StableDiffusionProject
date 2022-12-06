@@ -13,7 +13,6 @@ def image_loader(image_name, device, imsize):
 
 
     image = Image.open(image_name)
-    print(image_name, image.mode)
     # fake batch dimension required to fit network's input dimensions
     image = loader(image).unsqueeze(0)
     return image.to(device, torch.float)

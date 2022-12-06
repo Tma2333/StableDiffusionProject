@@ -190,8 +190,8 @@ if __name__=='__main__':
     model = get_vgg19(device)
     content_weight=50
     style_weight=10000000
-    folder = "icarus_seed132"
-    paths = glob.glob(os.path.join(f"../data/{folder}/","*.png"))
+    folder = "sleeping_beauty_seed5"
+    paths = glob.glob(os.path.join(f"../data/{folder}/","*guidance.png"))
     paths.sort(key = lambda x: int("".join([c for c in x if c.isnumeric()])))
     imgs_samples = torch.cat([
         image_loader(path, device, imsize) for path in paths

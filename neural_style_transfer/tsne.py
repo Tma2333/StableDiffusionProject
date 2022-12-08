@@ -119,7 +119,8 @@ def get_features( input, device):
 
 def plot_tsne(inputs, labels, n_classes=2, n_components=2, title="tsne.png", perplexity=10):
 
-    tsne = TSNE(n_components=n_components, verbose=0, random_state=50, n_iter=10000, perplexity=perplexity)
+    tsne = TSNE(n_components=n_components, init='random', learning_rate=200.0,
+    verbose=0, random_state=50, n_iter=10000, perplexity=perplexity)
     z = tsne.fit_transform(inputs)
 
     x = z[:,0]
@@ -157,15 +158,15 @@ def plot_tsne(inputs, labels, n_classes=2, n_components=2, title="tsne.png", per
         print(b)
         title_new = "".join(title.split("_")[:-2])
         if title_new == "matchsticks":
-            title_new = "GLM"
+            title_new = "LMG"
         if title_new == "icarus":
             title_new = "Icarus"
         if title_new == "narcissus":
             title_new = "Narcissus"
         b.axes.set_title(title_new,fontsize=24)
        
-        print("Variance after T-SNE: Original", np.std(z[:n]))
-        print("Variance after T-SNE: Learned", np.std(z[n:]))
+        # print("Variance after T-SNE: Original", np.std(z[:n]))
+        # print("Variance after T-SNE: Learned", np.std(z[n:]))
         plt.legend( fontsize='14')
     #plt.title(title, fontdict={'fontsize': 12})
     plt.tight_layout()

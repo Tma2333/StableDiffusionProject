@@ -189,8 +189,8 @@ if __name__=='__main__':
   
     model = get_vgg19(device)
     content_weight=50
-    style_weight=10000000
-    folder = "sleeping_beauty_seed5"
+    style_weight=100000000
+    folder = "icarus_seed10"
     paths = glob.glob(os.path.join(f"../data/{folder}/","*guidance.png"))
     paths.sort(key = lambda x: int("".join([c for c in x if c.isnumeric()])))
     imgs_samples = torch.cat([
@@ -207,12 +207,15 @@ if __name__=='__main__':
 
     
     output = run_style_transfer(model, imgs_samples, content_weight=content_weight, style_weight=style_weight, 
-                    num_steps=100, device=device)
+                    num_steps=400, device=device)
 
     for i, out in enumerate(output):
-        fpath = f"../data/image_blender_output/Output_{i}.png"
+        try:
+            os.mkdir(f"../data/blender_{folder}")
+        except:
+            pass
+        fpath = f"../data/blender_{folder}/Output_{i}.png"
         A = np.transpose(out.detach().cpu().squeeze(),(1,2,0)).numpy()
         im = Image.fromarray((A * 255).astype(np.uint8))
-        im.save(fpath)    
-        #imshow(out, fpath )
+        im.save(fpath)  
 

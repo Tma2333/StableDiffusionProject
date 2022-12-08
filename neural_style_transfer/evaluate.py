@@ -43,6 +43,27 @@ def evaluate_on_tsne(original_imgs, output_imgs, device, imsize, title="tsne"):
 
     
     labels = ["Original"]*n + ["After NST"]*n
+
+
+
+
+    _, orig_res = get_featuresResnet(
+        original, device
+    )
+    _, out_res = get_featuresResnet(
+        output, device
+    )
+    _, orig_vgg = get_features(
+        original, device
+    )
+    _, out_vgg = get_features(
+        output, device
+    )
+    activations_train, tsne_inputs_train = get_features(
+        torch.cat((
+            original, output
+        ), 0), device
+    )
     activations, tsne_inputs = get_featuresResnet(
         torch.cat((
             original, output
@@ -54,18 +75,21 @@ def evaluate_on_tsne(original_imgs, output_imgs, device, imsize, title="tsne"):
         ), 0), device
     )
     print(title, tsne_inputs.shape[1])
-    print("Variance before T-SNE (VGG19): Original", np.std(tsne_inputs_train[:n]))
-    print("Variance before T-SNE (VGG19): Learned", np.std(tsne_inputs_train[n:]))
-    
-    print("Variance before T-SNE (Resnet): Original", np.std(tsne_inputs[:n]))
-    print("Variance before T-SNE (Resnet): Learned", np.std(tsne_inputs[n:]))
 
-    print("Activations")
-    print("Variance before T-SNE (VGG19): Original", np.std(activations_train[:n]))
-    print("Variance before T-SNE (VGG19): Learned", np.std(activations_train[n:]))
+    print(out_vgg.shape)
+    print("Variance before T-SNE (VGG19): Original", np.sum(np.std(orig_vgg, axis=0)))
+    print("Variance before T-SNE (VGG19): Learned", np.sum(np.std(out_vgg, axis=0)))
     
-    print("Variance before T-SNE (Resnet): Original", np.std(activations[:n]))
-    print("Variance before T-SNE (Resnet): Learned", np.std(activations[n:]))
+    print("Variance before T-SNE (Resnet): Original", np.sum(np.std(orig_res, axis=0)))
+    print("Variance before T-SNE (Resnet): Learned", np.sum(np.std(out_res, axis=0)))
+    print("Perc. diff", (np.sum(np.std(orig_res, axis=0))-np.sum(np.std(out_res, axis=0)))/np.sum(np.std(orig_res, axis=0))*100.) 
+    print("Perc. diff train", (np.sum(np.std(orig_vgg, axis=0))-np.sum(np.std(out_vgg, axis=0)))/np.sum(np.std(orig_vgg, axis=0))*100.) 
+    # print("Activations")
+    # print("Variance before T-SNE (VGG19): Original", np.std(activations_train[:n]))
+    # print("Variance before T-SNE (VGG19): Learned", np.std(activations_train[n:]))
+    
+    # print("Variance before T-SNE (Resnet): Original", np.std(activations[:n]))
+    # print("Variance before T-SNE (Resnet): Learned", np.std(activations[n:]))
     plot_tsne(tsne_inputs, labels,2 , 2, title+"_2dim", perplexity=n)
     #plot_tsne(tsne_inputs, labels,2 , 3, title+"_3dim")
 
@@ -73,11 +97,10 @@ if __name__=='__main__':
     device = 'cpu'
     imsize = (224, 224)
 
-    orig = glob.glob(os.path.join("../data/samples2/","*o.png"))
-    output = glob.glob(os.path.join("../data/image_copier_output/","*.png"))
-
-    for folder in ["icarus_seed10", "narcissus_seed69", "match_sticks_seed4952", "match_sticks_seed5", "match_sticks_seed10"]:
+    
+    for folder in ["icarus_seed10", "narcissus_seed69", "match_sticks_seed4952"]:
         orig = glob.glob(os.path.join(f"../data/{folder}/","*guidance.png"))
-        output = glob.glob(os.path.join(f"../data/copier_{folder}/","*.png"))
+        output = glob.glob(os.path.join(f"../data/blender_{folder}/","*.png"))
+        print(orig, output)
         evaluate_on_tsne(orig, output, device, imsize, folder)
 

@@ -11,7 +11,7 @@ class ContentLoss(nn.Module):
 
     def forward(self, inputs):
         length = min(len(self.target), len(inputs))
-        self.loss = self.weight*F.mse_loss(inputs[:length], self.target[:length])/length
+        self.loss = self.weight*F.mse_loss(inputs[:length], self.target[:length])#/length
         return inputs
 
 
@@ -61,6 +61,6 @@ class StyleLoss_blending(nn.Module):
             for j in range(len(self.Gs_orig)):
                 # if i ==j:
                 #     continue
-                self.loss = torch.add(self.loss, F.mse_loss(Gs[i], self.Gs[j]))
+                self.loss = torch.add(self.loss, F.mse_loss(Gs[i], Gs[j]))
         self.loss = self.weight*self.loss.div(len(Gs)**2)
         return inputs

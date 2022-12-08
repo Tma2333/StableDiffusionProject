@@ -28,12 +28,12 @@ netG.load_state_dict(saved['model_state_dict'])
 #netG.load_state_dict(torch.load("../models/gen.pkl", map_location=torch.device('cpu')))
 netG.eval()
 
-fake_imgs = netG(fixed_noise)
-fake_imgs = torch.nn.Sigmoid()(fake_imgs).detach().cpu()
+fake_imgs = netG(fixed_noise).detach().cpu()
+#fake_imgs = torch.nn.Sigmoid()(fake_imgs).detach().cpu()
 
 for i, img in enumerate(tqdm(fake_imgs)):
     A = np.transpose(img.squeeze(),(1,2,0)).numpy()
-    im = Image.fromarray((A * 255).astype(np.uint8))
+    im = Image.fromarray(((A+1)/2 * 255).astype(np.uint8))
     im.save(f"../data/gan_samples/sample_imgs/gan_{i}.png")    
 t2 = time.time()
 print(t2-t1)

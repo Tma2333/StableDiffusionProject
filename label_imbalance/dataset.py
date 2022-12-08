@@ -53,13 +53,14 @@ class CIFAR10FullDataset(Dataset):
             self.labels = test_labels
 
         t = []
+        
         t.append(transforms.ToTensor())
-
         if standardize:
             t.append(transforms.Normalize(mean=self.MEAN, std=self.STD))
         if is_train:
-            t.append(transforms.RandomHorizontalFlip())
             t.append(transforms.RandomCrop(32, padding=4))
+            t.append(transforms.RandomHorizontalFlip())
+        
 
         self.preprocessing = transforms.Compose(t)
 
@@ -77,7 +78,7 @@ class CIFAR10FullDataset(Dataset):
 
 class CIFAR10ImbalanceDataset (CIFAR10FullDataset):
     def __init__(self, base_path: str = None, is_train: bool = True, standardize: bool = True, 
-                       target_cls: int = 0, remove_ratio: float = 0.99):
+                       target_cls: int = 3, remove_ratio: float = 0.99):
         super().__init__(base_path, is_train, standardize)
         assert is_train, f'You should only use this dataset for trinaing'
 
@@ -94,3 +95,60 @@ class CIFAR10ImbalanceDataset (CIFAR10FullDataset):
         self.data = self.data[subset_idx]
         self.labels = self.labels[subset_idx]
         
+
+class CIFAR10OverSampleDataset (CIFAR10ImbalanceDataset):
+    def __init__(self, base_path: str = None, is_train: bool = True, standardize: bool = True, 
+                       target_cls: int = 3, remove_ratio: float = 0.99):
+        super().__init__(base_path, is_train, standardize, target_cls, remove_ratio)
+        assert is_train, f'You should only use this dataset for trinaing'
+        target_idx = self.labels == target_cls
+        target_data = self.data[target_idx].copy()
+        target_data_dup = target_data.repeat(99, 0)
+        target_label_dup = np.array([target_cls]).repeat(4950)
+        self.data = np.concatenate([self.data, target_data_dup], axis=0)
+        self.labels = np.concatenate([self.labels, target_label_dup], axis=0)
+
+
+class CIFAR10OverSampleRandomAugDataset (CIFAR10ImbalanceDataset):
+    def __init__(self, base_path: str = None, is_train: bool = True, standardize: bool = True, 
+                       target_cls: int = 3, remove_ratio: float = 0.99):
+        super().__init__(base_path, is_train, standardize, target_cls, remove_ratio)
+        assert is_train, f'You should only use this dataset for trinaing'
+        target_idx = self.labels == target_cls
+        target_data = self.data[target_idx].copy()
+        target_data_dup = target_data.repeat(99, 0)
+        target_label_dup = np.array([target_cls]).repeat(4950)
+
+        t = []
+        t.append(transforms.ToTensor())
+        t.append(transforms.ColorJitter(brightness=.5, hue=.3))
+        t.append(transforms.RandomPerspective(distortion_scale=0.2, p=1.0))
+        t.append(transforms.RandomRotation(degrees=(0, 180)))
+        t.append(transforms.RandomApply([transforms.RandomSolarize(threshold=0.75)], 0.5))
+        t.append(transforms.ToPILImage())
+
+        random_aug = transforms.Compose(t)
+        print('process augmentation')
+        for i, img in enumerate(target_data_dup):
+            img = random_aug(img)
+            img = np.array(img)
+            target_data_dup[i] = img
+
+        self.data = np.concatenate([self.data, target_data_dup], axis=0)
+        self.labels = np.concatenate([self.labels, target_label_dup], axis=0)
+
+
+class CIFAR10StableDiffusionDataset (CIFAR10ImbalanceDataset):
+    def __init__(self, base_path: str = None, sb_path: str = None, is_train: bool = True, standardize: bool = True, 
+                       target_cls: int = 3, remove_ratio: float = 0.99):
+        super().__init__(base_path, is_train, standardize, target_cls, remove_ratio)
+        assert is_train, f'You should only use this dataset for trinaing'
+        assert target_cls==3, f'Stable Diffusion only generate for cat image which is class 3'
+
+        if sb_path is None:
+            sb_path = '/deep2/u/yma42/StableDiffusionProject/label_imbalance/data/sb_randm_sample.npy'
+        sb_sample = np.load(sb_path)
+        target_label_sb = np.array([target_cls]).repeat(len(sb_sample))
+
+        self.data = np.concatenate([self.data, sb_sample], axis=0)
+        self.labels = np.concatenate([self.labels, target_label_sb], axis=0)

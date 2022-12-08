@@ -1,16 +1,18 @@
 exp_name: CIFAR10-Imba
-version: 1
+version: 5
+seed: 69
 
 training:
-  batch_size: 500
+  batch_size: 256
   # train loader
   train_loader_worker: 8
   eval_loader_worker: 8
   #optimizer
-  optimizer: "Adam"
+  optimizer: "SGD"
   optimizer_cfg:
-    lr: 0.001
-    weight_decay: 0.0015
+    lr: 0.1
+    weight_decay: 0.0005
+    momentum: 0.9
   scheduler: "Cosine"
   warm_up_epoch: 5
   trainer:
@@ -29,7 +31,7 @@ training:
     gradient_clip_val: 0.5
     limit_train_batches: 1.0
     enable_model_summary: False
-    max_epochs: 200
+    max_epochs: 100
 
 dataset:
   train_dataset: CIFAR10ImbalanceDataset
@@ -47,6 +49,6 @@ dataset:
 
 models:
   # place holder
-  type: resnet50
+  type: resnet18
   pretrained: False
 

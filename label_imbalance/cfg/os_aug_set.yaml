@@ -1,4 +1,4 @@
-exp_name: CIFAR10-Full
+exp_name: CIFAR10-OverSampleAug
 version: 5
 seed: 69
 
@@ -17,7 +17,7 @@ training:
   warm_up_epoch: 5
   trainer:
     # GPU config
-    gpus: [0]
+    gpus: [3]
     strategy: ddp
     unused_params: True
     # Logging config
@@ -34,11 +34,12 @@ training:
     max_epochs: 100
 
 dataset:
-  train_dataset: CIFAR10FullDataset
+  train_dataset: CIFAR10OverSampleRandomAugDataset
   train_args:
     base_path: /deep2/u/yma42/StableDiffusionProject/label_imbalance/data/cifar-10-batches-py
     is_train: True
     standardize: True
+    target_cls: 3
   eval_dataset: CIFAR10FullDataset
   eval_args:
     base_path: '/deep2/u/yma42/StableDiffusionProject/label_imbalance/data/cifar-10-batches-py'

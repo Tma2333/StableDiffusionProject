@@ -9,11 +9,22 @@ import torchmetrics
 import pytorch_lightning as pl
 import timm 
 
-from dataset import CIFAR10FullDataset, CIFAR10ImbalanceDataset
+from dataset import (CIFAR10FullDataset, 
+                     CIFAR10ImbalanceDataset,
+                     CIFAR10OverSampleDataset,
+                     CIFAR10OverSampleRandomAugDataset,
+                     CIFAR10StableDiffusionDataset)
+
 
 
 def create_model (cfg): 
-    model = timm.create_model('resnet50', num_classes=10)
+    model_cfg = cfg.get("models", {'type': 'resnet18', 'pretrained': False})
+    model_type = model_cfg['type']
+    pretrained = model_cfg['pretrained']
+    model = timm.create_model(model_type, num_classes=10, pretrained=pretrained)
+    # modify for CIFAR-10
+    model.conv1 = nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    model.maxpool = nn.Identity()
     return model
 
 

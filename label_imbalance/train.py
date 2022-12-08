@@ -4,7 +4,7 @@ from pathlib import Path
 
 import fire
 import torch
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.strategies import DDPStrategy, DataParallelStrategy
 from pytorch_lightning.callbacks import (ModelCheckpoint, 
@@ -16,6 +16,10 @@ from lightning_task import Classification
 
 def train(cfg):
     cfg = read_yaml(cfg)
+    seed = cfg['seed']
+    seed_everything(seed=seed, workers=True)
+
+
     trainer_cfg = cfg['training']['trainer']
 
     # get task
